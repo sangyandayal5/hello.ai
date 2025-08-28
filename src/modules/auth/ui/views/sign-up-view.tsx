@@ -199,21 +199,25 @@ export const SignUpView = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <Button
                       disabled={pending}
-                      onClick={() => {onSocial("google")}}
+                      onClick={() => {
+                        onSocial('google')
+                      }}
                       variant="outline"
                       type="button"
                       className="w-full"
                     >
-                      <FaGithub/>
+                      <FaGoogle/>
                     </Button>
                     <Button
                       disabled={pending}
-                      onClick={() => {onSocial("google")}}
+                      onClick={() => {
+                        onSocial('google')
+                      }}
                       variant="outline"
                       type="button"
                       className="w-full"
                     >
-                      <FaGithub/>
+                      <FaGithub />
                     </Button>
                   </div>
                   <div className="text-center text-sm">
@@ -229,7 +233,7 @@ export const SignUpView = () => {
               </form>
             </Form>
             <div
-              className="bg-radial from-blue-400 to-blue-700 relative hidden md:flex flex-col
+              className="bg-radial from-sidebar-accent to-sidebar relative hidden md:flex flex-col
                     gap-y-4 items-center justify-center"
             >
               <img
