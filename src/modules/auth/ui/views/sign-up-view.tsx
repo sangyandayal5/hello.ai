@@ -4,6 +4,8 @@ import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
 import { useState } from "react"
+import { FaGithub, FaGoogle } from 'react-icons/fa'
+
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -54,10 +56,11 @@ export const SignUpView = () => {
                 name: data.name,
                 email: data.email,
                 password: data.password,
+                callbackURL: "/",
             },
             {
-            onSuccess: () => {
-                    router.push("/")
+              onSuccess: () => {
+              router.push("/")
                     setPending(false)
                 },
                 onError: ({ error }) => {
@@ -67,6 +70,26 @@ export const SignUpView = () => {
             },
             
         )
+    }
+    const onSocial = async (provider: 'github' | 'google') => {
+      setError(null)
+      setPending(true)
+
+      authClient.signIn.social(
+        {
+          provider: provider,
+          callbackURL: '/',
+        },
+        {
+          onSuccess: () => {
+            setPending(false)
+          },
+          onError: ({ error }) => {
+            setError(error.message)
+            setPending(false)
+          },
+        }
+      )
     }
 
     return (
@@ -176,19 +199,21 @@ export const SignUpView = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <Button
                       disabled={pending}
+                      onClick={() => {onSocial("google")}}
                       variant="outline"
                       type="button"
                       className="w-full"
                     >
-                      Google
+                      <FaGithub/>
                     </Button>
                     <Button
                       disabled={pending}
+                      onClick={() => {onSocial("google")}}
                       variant="outline"
                       type="button"
                       className="w-full"
                     >
-                      Github
+                      <FaGithub/>
                     </Button>
                   </div>
                   <div className="text-center text-sm">
