@@ -185,7 +185,7 @@ export const SignInView = () => {
               </form>
             </Form>
             <div
-              className="bg-radial from-blue-400 to-blue-700 relative hidden md:flex flex-col
+              className="bg-radial from-sidebar-accent to-sidebar relative hidden md:flex flex-col
                     gap-y-4 items-center justify-center"
             >
               <img
