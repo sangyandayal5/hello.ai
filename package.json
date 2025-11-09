@@ -9,7 +9,7 @@
     "lint": "next lint",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "dev:webhook": "ngrok http 3000"
+    "dev:webhook": "ngrok http --url=meritedly-dispersible-shalon.ngrok-free.dev 3000"
   },
   "dependencies": {
     "@dicebear/collection": "^9.2.4",
@@ -17,6 +17,7 @@
     "@hookform/resolvers": "^5.2.1",
     "@inngest/agent-kit": "^0.13.1",
     "@neondatabase/serverless": "^1.0.0",
+    "@opentelemetry/winston-transport": "^0.19.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-aspect-ratio": "^1.1.7",
@@ -43,9 +44,9 @@
     "@radix-ui/react-toggle": "^1.1.9",
     "@radix-ui/react-toggle-group": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.2.7",
-    "@stream-io/node-sdk": "^0.7.15",
-    "@stream-io/openai-realtime-api": "^0.3.3",
-    "@stream-io/video-react-sdk": "^1.24.3",
+    "@stream-io/node-sdk": "^0.4.24",
+    "@stream-io/openai-realtime-api": "^0.2.0",
+    "@stream-io/video-react-sdk": "^1.18.0",
     "@tanstack/react-query": "^5.85.6",
     "@tanstack/react-table": "^8.21.3",
     "@trpc/client": "^11.5.0",
