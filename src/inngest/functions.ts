@@ -45,11 +45,6 @@ export const meetingsProcessing = inngest.createFunction(
       return JSONL.parse<StreamTranscriptItem>(response)
     })
 
-    // Log transcript info for debugging
-    console.log(`Transcript has ${transcript.length} items`)
-    const uniqueSpeakerIds = [...new Set(transcript.map((item) => item.speaker_id))]
-    console.log(`Found ${uniqueSpeakerIds.length} unique speakers:`, uniqueSpeakerIds)
-
     const transcriptWithSpeakers = await step.run("add-speakers", async () => {
       const speakerIds = [
         ...new Set(transcript.map((item) => item.speaker_id)),
