@@ -93,11 +93,12 @@ export async function POST(req: NextRequest){
               call,
               openAiApiKey: process.env.OPENAI_API_KEY!,
               agentUserId: existingAgent.id,
-              // model:"gpt-4o-realtime-preview"
           })
           
           realtimeClient.updateSession({
-              instructions: existingAgent.instructions,
+            instructions: existingAgent.instructions,
+            voice: 'verse',
+            turn_detection: { type: 'server_vad' },
           })
       }
     
@@ -124,7 +125,7 @@ export async function POST(req: NextRequest){
             .update(meetings)
             .set({
               status: 'processing',
-              startedAt: new Date(),
+              endedAt: new Date(),
             })
             .where(and(eq(meetings.id, meetingId), eq(meetings.status, "active")))
       }
@@ -159,7 +160,7 @@ export async function POST(req: NextRequest){
           await db
               .update(meetings)
               .set({
-                  transcriptUrl: event.call_recording.url,
+                  recordingUrl: event.call_recording.url,
             })
             .where(eq(meetings.id, meetingId))
 

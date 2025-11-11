@@ -4,33 +4,33 @@ import { inngest } from '@/inngest/client'
 import { StreamTranscriptItem } from '@/modules/meetings/types'
 import { eq, inArray } from 'drizzle-orm'
 import JSONL from "jsonl-parse-stringify"
-import { createAgent, openai, TextMessage } from "@inngest/agent-kit"
+import OpenAI from "openai"
 
-const summarizer = createAgent({
-  name: 'summarizer',
-  system: `
-    You are an expert summarizer. You write readable, concise, simple content. You are given a transcript of a meeting and you need to summarize it.
-
-    Use the following markdown structure for every output:
-
-    ### Overview
-    Provide a detailed, engaging summary of the session's content. Focus on major features, user workflows, and any key takeaways. Write in a narrative style, using full sentences. Highlight unique or powerful aspects of the product, platform, or discussion.
-
-    ### Notes
-    Break down key content into thematic sections with timestamp ranges. Each section should summarize key points, actions, or demos in bullet format.
-
-    Example:
-    #### Section Name
-    - Main point or demo shown here
-    - Another key insight or interaction
-    - Follow-up tool or explanation provided
-
-    #### Next Section
-    - Feature X automatically does Y
-    - Mention of integration with Z
-  `.trim(),
-    model: openai({model: "gpt-4o", apiKey: process.env.OPENAI_API_KEY})
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 })
+
+const SYSTEM_PROMPT = `
+You are an expert summarizer. You write readable, concise, simple content. You are given a transcript of a meeting and you need to summarize it.
+
+Use the following markdown structure for every output:
+
+### Overview
+Provide a detailed, engaging summary of the session's content. Focus on major features, user workflows, and any key takeaways. Write in a narrative style, using full sentences. Highlight unique or powerful aspects of the product, platform, or discussion.
+
+### Notes
+Break down key content into thematic sections with timestamp ranges. Each section should summarize key points, actions, or demos in bullet format.
+
+Example:
+#### Section Name
+- Main point or demo shown here
+- Another key insight or interaction
+- Follow-up tool or explanation provided
+
+#### Next Section
+- Feature X automatically does Y
+- Mention of integration with Z
+`.trim()
 
 
 export const meetingsProcessing = inngest.createFunction(
@@ -44,11 +44,6 @@ export const meetingsProcessing = inngest.createFunction(
     const transcript = await step.run("parse-transcript", async () => {
       return JSONL.parse<StreamTranscriptItem>(response)
     })
-
-    // Log transcript info for debugging
-    console.log(`Transcript has ${transcript.length} items`)
-    const uniqueSpeakerIds = [...new Set(transcript.map((item) => item.speaker_id))]
-    console.log(`Found ${uniqueSpeakerIds.length} unique speakers:`, uniqueSpeakerIds)
 
     const transcriptWithSpeakers = await step.run("add-speakers", async () => {
       const speakerIds = [
@@ -99,16 +94,30 @@ export const meetingsProcessing = inngest.createFunction(
       })
     })
 
-    const { output } = await summarizer.run(
-      "Summarize the following transcript: " + 
-      JSON.stringify(transcriptWithSpeakers)
-    ) 
+    const summary = await step.run("summarize-transcript", async () => {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: SYSTEM_PROMPT,
+          },
+          {
+            role: "user",
+            content: "Summarize the following transcript: " + 
+              JSON.stringify(transcriptWithSpeakers),
+          },
+        ],
+      })
+
+      return response.choices[0]?.message?.content || ""
+    })
     
     await step.run("save-summary", async () => {
       await db
         .update(meetings)
         .set({
-          summary: ( output[0] as TextMessage).content as string,
+          summary: summary,
           status: "completed",
         })
         .where(eq(meetings.id, event.data.meetingId))
