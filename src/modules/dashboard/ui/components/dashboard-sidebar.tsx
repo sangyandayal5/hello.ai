@@ -14,7 +14,7 @@ import {
 
  } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
-import { BotIcon, StarIcon, VideoIcon } from "lucide-react"
+import { BotIcon, VideoIcon } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -33,13 +33,13 @@ const firstSection = [
         href: "/agents",
     }
 ]
-const secondSection = [
-    {
-        icon: StarIcon,
-        label: "Upgrade",
-        href: "/upgrade",
-    }
-]
+// const secondSection = [
+//     {
+//         icon: StarIcon,
+//         label: "Upgrade(TODO)",
+//         href: "/upgrade",
+//     }
+// ]
 
 export const DashboardSidebar = () => {
 
@@ -89,7 +89,7 @@ export const DashboardSidebar = () => {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {secondSection.map((item) => (
+                {/* {secondSection.map((item) => (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       asChild
@@ -108,7 +108,7 @@ export const DashboardSidebar = () => {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                ))}
+                ))} */}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
