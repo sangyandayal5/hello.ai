@@ -192,7 +192,6 @@ export async function POST(req: NextRequest) {
 
     const call = streamVideo.video.call('default', meetingId)
     try {
-      // Ensure agent user exists in Stream Video
       const doUpsert = async () =>
         await streamVideo.upsertUsers([
           {
@@ -229,9 +228,6 @@ export async function POST(req: NextRequest) {
               'You are a silent listener. Do not respond or speak. Gemini will provide responses.',
           })
 
-          console.log(
-            '[Agent] Joined call via OpenAI (silent mode for visibility)'
-          )
         } catch (err) {
           console.error(
             '[Agent] OpenAI join failed (continuing without it):',
@@ -282,7 +278,7 @@ export async function POST(req: NextRequest) {
       .update(meetings)
       .set({
         status: 'processing',
-        startedAt: new Date(),
+        endedAt: new Date(),
       })
       .where(and(eq(meetings.id, meetingId), eq(meetings.status, 'active')))
   } else if (eventType === 'call.transcription_ready') {
@@ -356,7 +352,7 @@ export async function POST(req: NextRequest) {
     await db
       .update(meetings)
       .set({
-        transcriptUrl: event.call_recording.url,
+        recordingUrl: event.call_recording.url,
       })
       .where(eq(meetings.id, meetingId))
   } else if (eventType === 'call.closed_caption') {

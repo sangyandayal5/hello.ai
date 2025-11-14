@@ -24,12 +24,8 @@ function getSpeechClient() {
 }
 
 function getTTSClient() {
-  // TTS is optional - only needed if you want to convert text to audio
-  // If not configured, responses will be text-only
-  if (
-    !process.env.GOOGLE_CLOUD_KEYFILE &&
-    !process.env.GOOGLE_CLOUD_PROJECT_ID
-  ) {
+
+  if (!process.env.GOOGLE_CLOUD_KEYFILE && !process.env.GOOGLE_CLOUD_PROJECT_ID ) {
     return null
   }
   if (!ttsClient) {
@@ -61,26 +57,9 @@ interface GeminiVoiceSession {
   audioResponses: Array<{ text: string; audioUrl: string; timestamp: Date }>
 }
 
-// Audio storage directory
-const AUDIO_STORAGE_DIR = join(process.cwd(), 'public', 'audio-responses')
-
-async function ensureAudioDir() {
-  if (!existsSync(AUDIO_STORAGE_DIR)) {
-    await mkdir(AUDIO_STORAGE_DIR, { recursive: true })
-  }
-}
-
 export class GeminiVoiceService {
   private sessions: Map<string, GeminiVoiceSession> = new Map()
 
-  /**
-   * Start a Gemini-powered voice session for a Stream Video call
-   * This uses multiple Google APIs working together:
-   * 1. Stream Video transcription (already enabled) → provides text
-   * 2. Gemini API → processes text and generates responses
-   * 3. Google Cloud Text-to-Speech → converts text to audio
-   * 4. Stream Video → streams audio back to participants
-   */
   async startSession(
     call: Call,
     agentUserId: string,
@@ -97,17 +76,8 @@ export class GeminiVoiceService {
       isProcessing: false,
       audioResponses: [],
     })
-
-    // Set up transcription listener
-    // Stream Video will send transcription events via webhook
-    // We'll process them in the webhook handler
-    console.log(`[Gemini Voice] Session started for call ${sessionId}`)
   }
 
-  /**
-   * Process transcribed text and generate audio response
-   * This is called when we receive transcription from Stream Video
-   */
   async processTranscription(
     callId: string,
     transcriptionText: string,
@@ -126,20 +96,16 @@ export class GeminiVoiceService {
     session.isProcessing = true
 
     try {
-      console.log('[Gemini Voice] Incoming transcript:', transcriptionText)
-      // Step 1: Add user message to conversation history
       session.conversationHistory.push({
         role: 'user',
         content: transcriptionText,
       })
 
-      // Step 2: Generate response using Gemini
       const geminiResponse = await this.generateGeminiResponse(
         session.instructions,
         session.conversationHistory
       )
 
-      // Step 3: Add assistant response to history
       session.conversationHistory.push({
         role: 'assistant',
         content: geminiResponse,
@@ -156,55 +122,19 @@ export class GeminiVoiceService {
         audioBuffer ? audioBuffer.length : 0
       )
 
-      // Step 5: Store audio response for client-side playback
-      if (audioBuffer) {
-        try {
-          await ensureAudioDir()
+      try {
+        const audioFileName = `${callId}-${Date.now()}.wav`
+        const audioUrl = `/audio-responses/${audioFileName}`
+        session.audioResponses.push({
+          text: geminiResponse,
+          audioUrl,
+          timestamp: new Date(),
+        })
+      } catch (saveError) {
+        console.error('[Gemini Voice] Error saving audio:', saveError)
+      }      
 
-          // Save audio file
-          const audioFileName = `${callId}-${Date.now()}.wav`
-          const audioPath = join(AUDIO_STORAGE_DIR, audioFileName)
-          await writeFile(audioPath, audioBuffer)
-
-          const audioUrl = `/audio-responses/${audioFileName}`
-
-          // Store in session for tracking
-          session.audioResponses.push({
-            text: geminiResponse,
-            audioUrl,
-            timestamp: new Date(),
-          })
-
-          // Audio is saved, client will poll API endpoint to get it
-          // No need to send via Stream Video message (simpler approach)
-
-          console.log(
-            `[Gemini Voice] Generated and saved audio response: ${audioUrl} (${audioBuffer.length} bytes)`
-          )
-        } catch (saveError) {
-          console.error('[Gemini Voice] Error saving audio:', saveError)
-          // Fallback: log text response
-          console.log(`[Gemini Voice] Response (text-only): ${geminiResponse}`)
-        }
-      } else {
-        // No TTS configured - store text response for client-side TTS or display
-        try {
-          session.audioResponses.push({
-            text: geminiResponse,
-            audioUrl: '', // No audio URL - text only
-            timestamp: new Date(),
-          })
-          console.log(
-            `[Gemini Voice] Stored text response (no TTS): ${geminiResponse.substring(0, 50)}...`
-          )
-        } catch (error) {
-          console.error('[Gemini Voice] Error storing text response:', error)
-        }
-      }
-
-      console.log(
-        `[Gemini Voice] Processed transcription for call ${callId}: ${transcriptionText.substring(0, 50)}...`
-      )
+   
     } catch (error) {
       console.error('[Gemini Voice] Error processing transcription:', error)
     } finally {
@@ -244,10 +174,6 @@ export class GeminiVoiceService {
     return text || 'I apologize, but I could not generate a response.'
   }
 
-  /**
-   * Convert text to speech using Google Cloud Text-to-Speech
-   * Returns null if TTS is not configured
-   */
   private async textToSpeech(text: string): Promise<Buffer | null> {
     const client = getTTSClient()
     if (!client) {
@@ -262,7 +188,7 @@ export class GeminiVoiceService {
         input: { text },
         voice: {
           languageCode: 'en-US',
-          name: 'en-US-Neural2-F', // Natural female voice
+          name: 'en-US-Neural2-F', 
           ssmlGender: 'FEMALE' as const,
         },
         audioConfig: {
@@ -280,9 +206,6 @@ export class GeminiVoiceService {
     return Buffer.from(response.audioContent)
   }
 
-  /**
-   * Get latest audio response URL for a call
-   */
   getLatestAudioResponse(callId: string): string | null {
     const session = this.sessions.get(callId)
     if (!session || session.audioResponses.length === 0) {
@@ -292,9 +215,6 @@ export class GeminiVoiceService {
     return latest.audioUrl
   }
 
-  /**
-   * Get all audio responses for a call
-   */
   getAudioResponses(
     callId: string
   ): Array<{ text: string; audioUrl: string; timestamp: Date }> {
@@ -302,21 +222,15 @@ export class GeminiVoiceService {
     return session?.audioResponses || []
   }
 
-  /**
-   * End a voice session
-   */
   async endSession(callId: string): Promise<void> {
     this.sessions.delete(callId)
     console.log(`[Gemini Voice] Session ended for call ${callId}`)
   }
 
-  /**
-   * Check if session exists
-   */
+
   hasSession(callId: string): boolean {
     return this.sessions.has(callId)
   }
 }
 
-// Singleton instance
 export const geminiVoiceService = new GeminiVoiceService()
